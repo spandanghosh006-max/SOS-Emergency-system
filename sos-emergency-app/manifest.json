@@ -1,0 +1,22 @@
+{
+  "name": "SOS Emergency Assistant",
+  "short_name": "SOS Assist",
+  "description": "Personal emergency assistant to send SOS messages and share live location.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#ef4444",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/alert/warning/materialicons/24dp/2x/baseline_warning_white_24dp.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/alert/warning/materialicons/48dp/2x/baseline_warning_white_48dp.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

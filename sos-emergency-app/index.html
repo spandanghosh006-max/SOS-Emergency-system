@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOS Emergency Assistant</title>
+    <meta name="description" content="Personal emergency assistant to send SOS messages, share live location, and continuously record audio in emergencies.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <h1>SOS Assist</h1>
+                <div id="recording-indicator" class="hidden">
+                    <span class="pulse-dot"></span> Recording
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- Views container -->
+            <div id="views">
+                <!-- Home View -->
+                <section id="view-home" class="view active">
+                    <!-- Permission Banner -->
+                    <div id="permission-banner" class="mb-6 p-4 rounded-xl hidden" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); margin: 0 15px 20px 15px; border-radius: 15px;">
+                        <p class="small-text mb-3" style="color: white; text-align: center; font-size: 0.8rem; opacity: 1; margin-bottom: 10px;">🚨 App requires GPS & Mic permissions to work correctly.</p>
+                        <button id="grant-permissions-btn" class="btn-primary w-full" style="background: var(--accent-red); font-size: 0.8rem; padding: 10px; width: 100%;">Grant All Permissions Now</button>
+                    </div>
+                    <div class="sos-container">
+                        <div class="ripple-ring ring-1"></div>
+                        <div class="ripple-ring ring-2"></div>
+                        <button id="sos-btn" class="sos-btn">
+                            <span class="material-icons-round">emergency</span>
+                            <span class="btn-text">SOS</span>
+                        </button>
+                    </div>
+                    <p class="sos-hint">Tap to activate Emergency Mode</p>
+                    <button id="voice-trigger-btn" class="btn-secondary" style="width: 200px; display: block; margin: 0 auto 2rem auto; font-size: 0.9rem;">🎙️ Voice Trigger ("Help")</button>
+
+                    <div class="quick-actions">
+                        <div class="card" onclick="app.switchView('view-contacts')">
+                            <span class="material-icons-round icon-blue">group</span>
+                            <h3>Contacts</h3>
+                            <p>Manage SOS recipients</p>
+                        </div>
+                        <div class="card" onclick="app.switchView('view-message')">
+                            <span class="material-icons-round icon-purple">edit_note</span>
+                            <h3>Message</h3>
+                            <p>Customize SOS text</p>
+                        </div>
+                        <div class="card" onclick="app.switchView('view-firstaid')">
+                            <span class="material-icons-round icon-green">medical_services</span>
+                            <h3>First Aid</h3>
+                            <p>Emergency guides</p>
+                        </div>
+                        <div class="card" onclick="app.switchView('view-helplines')">
+                            <span class="material-icons-round icon-orange">phone_in_talk</span>
+                            <h3>Helplines</h3>
+                            <p>Important numbers</p>
+                        </div>
+                    </div>
+
+                    <div class="recordings-section mt-4">
+                        <div class="section-header">
+                            <h2>Recent Recordings</h2>
+                        </div>
+                        <div id="recordings-list" class="recordings-list">
+                            <p class="empty-state">No emergency recordings yet.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contacts View -->
+                <section id="view-contacts" class="view">
+                    <h2>Emergency Contacts</h2>
+                    <p class="subtitle">These numbers will receive your SOS message.</p>
+                    
+                    <button id="radar-btn" class="btn-primary w-full mb-2" style="background: var(--accent-purple); display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 1.5rem;">
+                        <span class="material-icons-round">radar</span> Find Who is Nearby Now
+                    </button>
+                    
+                    <div id="radar-results" class="hidden mb-2" style="background: rgba(139, 92, 246, 0.1); border: 1px solid var(--accent-purple); padding: 15px; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <h3 style="color: var(--accent-purple); margin-bottom: 10px; font-size: 1rem;">📍 Radar Results:</h3>
+                        <ul id="radar-list" style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem;"></ul>
+                        <div id="radar-map" style="height: 200px; width: 100%; border-radius: 10px; margin-top: 15px; z-index: 1;" class="hidden"></div>
+                    </div>
+                    
+                    <form id="add-contact-form" class="glass-form">
+                        <div class="input-group">
+                            <input type="text" id="contact-name" placeholder="Name (e.g. Mom)" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="tel" id="contact-phone" placeholder="Phone Number" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Add Contact</button>
+                    </form>
+
+                    <div id="contacts-list" class="list-container">
+                        <!-- Contacts will be injected here -->
+                    </div>
+                </section>
+
+                <!-- Message Customization View -->
+                <section id="view-message" class="view">
+                    <h2>Custom Message</h2>
+                    <p class="subtitle">This text will be sent along with your live location link.</p>
+                    
+                    <div class="glass-form">
+                        <textarea id="custom-message" rows="5" placeholder="Help me, I am in an emergency!"></textarea>
+                        <p class="info-text"><small>* Your live location link will be automatically appended to the end of this message.</small></p>
+                        <button id="save-message-btn" class="btn-primary">Save Message</button>
+                    </div>
+                </section>
+
+                <!-- First Aid View -->
+                <section id="view-firstaid" class="view">
+                    <h2>First Aid Guides</h2>
+                    <div class="info-accordion">
+                        <div class="accordion-item">
+                            <button class="accordion-header">CPR (Cardiopulmonary Resuscitation)</button>
+                            <div class="accordion-content">
+                                <ol>
+                                    <li>Check for responsiveness and breathing.</li>
+                                    <li>Call emergency services immediately.</li>
+                                    <li>Place hands in the center of the chest.</li>
+                                    <li>Push hard and fast (100-120 compressions per minute).</li>
+                                </ol>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-header">Severe Bleeding</button>
+                            <div class="accordion-content">
+                                <ul>
+                                    <li>Apply direct pressure to the wound with a clean cloth.</li>
+                                    <li>Maintain pressure until bleeding stops.</li>
+                                    <li>If necessary, apply a tourniquet above the wound if trained to do so.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-header">Burns</button>
+                            <div class="accordion-content">
+                                <ul>
+                                    <li>Cool the burn under cool (not cold) running water for 10-15 minutes.</li>
+                                    <li>Remove constricting items like rings.</li>
+                                    <li>Do not apply ice, butter, or ointments.</li>
+                                    <li>Cover with a sterile, non-fluffy dressing.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Helplines View -->
+                <section id="view-helplines" class="view">
+                    <h2>Helpline Numbers</h2>
+                    <div class="list-container">
+                        <div class="list-item">
+                            <div class="item-info">
+                                <strong>National Emergency</strong>
+                                <span>112</span>
+                            </div>
+                            <a href="tel:112" class="icon-btn"><span class="material-icons-round">call</span></a>
+                        </div>
+                        <div class="list-item">
+                            <div class="item-info">
+                                <strong>Police</strong>
+                                <span>100</span>
+                            </div>
+                            <a href="tel:100" class="icon-btn"><span class="material-icons-round">call</span></a>
+                        </div>
+                        <div class="list-item">
+                            <div class="item-info">
+                                <strong>Ambulance</strong>
+                                <span>102</span>
+                            </div>
+                            <a href="tel:102" class="icon-btn"><span class="material-icons-round">call</span></a>
+                        </div>
+                        <div class="list-item">
+                            <div class="item-info">
+                                <strong>Fire</strong>
+                                <span>101</span>
+                            </div>
+                            <a href="tel:101" class="icon-btn"><span class="material-icons-round">call</span></a>
+                        </div>
+                        <div class="list-item">
+                            <div class="item-info">
+                                <strong>Women Helpline</strong>
+                                <span>1091</span>
+                            </div>
+                            <a href="tel:1091" class="icon-btn"><span class="material-icons-round">call</span></a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="app.switchView('view-home')">
+                <span class="material-icons-round">home</span>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" onclick="app.switchView('view-contacts')">
+                <span class="material-icons-round">contacts</span>
+                <span>Contacts</span>
+            </button>
+            <button class="nav-item" onclick="app.switchView('view-message')">
+                <span class="material-icons-round">settings</span>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="toast hidden">Message saved!</div>
+    </div>
+
+    <!-- SOS Overlay Modal -->
+    <div id="sos-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="alert-text">EMERGENCY MODE ACTIVE</h2>
+            <div class="modal-loader">
+                <div class="loader-circle"></div>
+                <span class="material-icons-round alert-icon">mic</span>
+            </div>
+            <p>Recording audio & gathering live location...</p>
+            <p class="small-text">Audio saves automatically if you close the app.</p>
+            
+            <div id="action-buttons" class="mt-4">
+                <button id="send-cloud-sos-btn" class="btn-primary w-full mb-2" style="background: var(--accent-red);">🚨 Instant Call + Text (Cloud)</button>
+                <button id="send-sms-btn" class="btn-secondary w-full mb-2">Send Fallback SMS</button>
+                <button id="stop-sos-btn" class="btn-secondary w-full">Stop SOS</button>
+            </div>
+
+            <!-- Live Responses Area -->
+            <div id="live-responses" class="mt-4 hidden" style="border: 1px solid var(--accent-green); border-radius: 10px; padding: 1rem; text-align: left; background: rgba(16, 185, 129, 0.1);">
+                <h3 style="color: var(--accent-green); margin-bottom: 0.5rem; font-size: 1rem; display: flex; align-items: center; gap: 5px;">
+                    <span class="pulse-dot" style="background-color: var(--accent-green);"></span> Incoming Help
+                </h3>
+                <ul id="responses-list" style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: white;">
+                    <!-- Responses will be injected here -->
+                </ul>
+                <div id="map" style="height: 200px; width: 100%; border-radius: 10px; margin-top: 15px; z-index: 1;" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
