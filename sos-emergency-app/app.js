@@ -2,7 +2,7 @@
 // ⚠️ IMPORTANT: Change this URL to your deployed Render URL once hosted!
 // Example: const API_URL = "https://my-sos-backend.onrender.com";
 // ==========================================
-const API_URL = "https://your-actual-url.replit.app";
+const API_URL = "https://c04d9b78-bb79-45c8-8997-727489b365f0-00-2qsdck73ubeig.picard.replit.dev";
 const app = {
     contacts: [],
     customMessage: "EMERGENCY: I need help immediately. Please track my location.",
